@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// 1. Define o "gerador" do Prisma Client (para o seu código Node.js)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 2. Define a fonte de dados (lê o .env que você acabou de configurar)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- 1. USUÁRIOS ----
+model usuarios {
+  id         Int         @id @default(autoincrement())
+  email      String      @unique @db.VarChar(255)
+  senha_hash String      @db.VarChar(255)
+  criado_em  DateTime    @default(now())
+
+  // Relacionamento: Um usuário tem muitas carreiras
+  carreiras  carreiras[]
+}
+
+// ---- 2. CARREIRA E TEMPORADAS ----
+model carreiras {
+  id            Int    @id @default(autoincrement())
+  nome_carreira String @db.VarChar(100)
+  usuario_id    Int
+  
+  // Relacionamento: Esta carreira pertence a um usuário
+  usuario       usuarios     @relation(fields: [usuario_id], references: [id])
+
+  // Relacionamentos: Uma carreira tem muitas...
+  temporadas temporadas[]
+  jogadores  jogadores[]
+  observacao observacao[]
+}
+
+model temporadas {
+  id                      Int       @id @default(autoincrement())
+  nome                    String    @db.VarChar(50)
+  clube_nome              String    @db.VarChar(100)
+  orcamento_transferencia Decimal?  @default(0)
+  orcamento_salarios      Decimal?  @default(0)
+  carreira_id             Int
+
+  // Relacionamento: Esta temporada pertence a uma carreira
+  carreira                carreiras                @relation(fields: [carreira_id], references: [id])
+
+  // Relacionamentos: Uma temporada tem muitos...
+  elenco                  elenco_temporada[]
+  transferencias          transferencias[]
+  titulos_conquistados    titulos_conquistados[]
+  ligas                   ligas_temporada[]
+  
+  // Relacionamento: Uma temporada tem UM prêmio (opcional)
+  premio_temporada        premios_temporada?
+}
+
+// ---- 3. JOGADORES E ELENCO ----
+model jogadores {
+  id               Int      @id @default(autoincrement())
+  nome_completo    String   @db.VarChar(100)
+  posicao          String   @db.VarChar(10)
+  nacionalidade    String?  @db.VarChar(50)
+  carreira_id      Int
+
+  // Relacionamento: Este jogador "mestre" pertence a uma carreira
+  carreira         carreiras             @relation(fields: [carreira_id], references: [id])
+
+  // Relacionamentos: Um jogador está em muitos...
+  temporadas_elenco elenco_temporada[]
+  transferencias    transferencias[]
+  candidaturas_premio candidatos_premio[]
+}
+
+model elenco_temporada {
+  id               Int      @id @default(autoincrement())
+  jogador_id       Int
+  temporada_id     Int
+  overall          Int
+  idade            Int
+  valor_mercado    Decimal? @default(0)
+  jogos_disputados Int?     @default(0)
+  gols             Int?     @default(0)
+  assistencias     Int?     @default(0)
+
+  // Relacionamento: Esta entrada do elenco se refere a um jogador
+  jogador          jogadores  @relation(fields: [jogador_id], references: [id])
+  // Relacionamento: Esta entrada do elenco se refere a uma temporada
+  temporada        temporadas @relation(fields: [temporada_id], references: [id])
+}
+
+// ---- 4. EVENTOS E ANOTAÇÕES ----
+model transferencias {
+  id                   Int        @id @default(autoincrement())
+  temporada_id         Int
+  jogador_id           Int? // Opcional, se for compra de jogador externo
+  tipo_transferencia   String     @db.VarChar(10) // 'compra' ou 'venda'
+  nome_jogador_externo String?    @db.VarChar(100)
+  time_origem          String?    @db.VarChar(100)
+  time_destino         String?    @db.VarChar(100)
+  valor_transferencia  Decimal    @default(0)
+  data_transferencia   DateTime?  @default(now())
+
+  // Relacionamento: Esta transferência pertence a uma temporada
+  temporada            temporadas @relation(fields: [temporada_id], references: [id])
+  // Relacionamento: Esta transferência (pode) se referir a um jogador
+  jogador              jogadores? @relation(fields: [jogador_id], references: [id])
+}
+
+model observacao {
+  id           Int       @id @default(autoincrement())
+  carreira_id  Int
+  nome_jogador String    @db.VarChar(100)
+  clube_atual  String?   @db.VarChar(100)
+  idade_aprox  Int?
+  posicao      String?   @db.VarChar(10)
+  notas        String?   @db.Text
+
+  // Relacionamento: Esta anotação pertence a uma carreira
+  carreira     carreiras @relation(fields: [carreira_id], references: [id])
+}
+
+// ---- 5. ALMANAQUE (Títulos e Ligas) ----
+model titulos_conquistados {
+  id             Int        @id @default(autoincrement())
+  temporada_id   Int
+  nome_titulo    String     @db.VarChar(100)
+  clube_vencedor String     @db.VarChar(100)
+
+  // Relacionamento: Este título foi ganho em uma temporada
+  temporada      temporadas @relation(fields: [temporada_id], references: [id])
+}
+
+model ligas_temporada {
+  id            Int      @id @default(autoincrement())
+  temporada_id  Int
+  nome_liga     String   @db.VarChar(100)
+
+  // Relacionamento: Esta tabela de liga pertence a uma temporada
+  temporada     temporadas             @relation(fields: [temporada_id], references: [id])
+  
+  // Relacionamento: Uma liga tem muitas equipes na classificação
+  classificacao classificacao_equipe[]
+}
+
+model classificacao_equipe {
+  id                Int             @id @default(autoincrement())
+  liga_temporada_id Int
+  posicao           Int
+  nome_time         String          @db.VarChar(100)
+  pontos            Int
+  vitorias          Int?            @default(0)
+  empates           Int?            @default(0)
+  derrotas          Int?            @default(0)
+  gols_pro          Int?            @default(0)
+  gols_contra       Int?            @default(0)
+
+  // Relacionamento: Esta linha de classificação pertence a uma liga
+  liga              ligas_temporada @relation(fields: [liga_temporada_id], references: [id])
+}
+
+// ---- 6. MÓDULO DE PRÊMIOS ----
+model premios_temporada {
+  id             Int        @id @default(autoincrement())
+  temporada_id   Int        @unique // Importante: 1 prêmio por temporada
+  nome_premio    String     @default("Melhor do Mundo (CM)") @db.VarChar(100)
+  vencedor_nome  String?    @db.VarChar(100)
+  vencedor_clube String?    @db.VarChar(100)
+
+  // Relacionamento: Este prêmio pertence a uma temporada
+  temporada      temporadas          @relation(fields: [temporada_id], references: [id])
+  
+  // Relacionamento: Um prêmio tem muitos candidatos
+  candidatos     candidatos_premio[]
+}
+
+model candidatos_premio {
+  id                       Int      @id @default(autoincrement())
+  premio_id                Int
+  nome_jogador             String   @db.VarChar(100)
+  clube                    String   @db.VarChar(100)
+  gols_liga                Int?     @default(0)
+  assist_liga              Int?     @default(0)
+  gols_copas               Int?     @default(0)
+  assist_copas             Int?     @default(0)
+  ganhou_liga              Boolean? @default(false)
+  ganhou_copa_nacional     Boolean? @default(false)
+  ganhou_copa_continental  Boolean? @default(false)
+  jogador_id               Int? // Opcional, se for um jogador seu
+
+  // Relacionamento: Este candidato pertence a um prêmio
+  premio                   premios_temporada @relation(fields: [premio_id], references: [id])
+  // Relacionamento: Este candidato (pode) ser um jogador seu
+  jogador                  jogadores?        @relation(fields: [jogador_id], references: [id])
+}
