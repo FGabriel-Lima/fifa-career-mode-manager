@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { criarJogador, listarJogadoresDaCarreira } = require('../controllers/playerController');
+const { criarJogador, listarJogadoresDaCarreira, atualizarJogador, deletarJogador } = require('../controllers/playerController');
 
 const { protect } = require('../middleware/authMiddleware');
 
@@ -9,5 +9,7 @@ router.use(protect);
 
 router.post('/', criarJogador);
 router.get('/:carreiraId', listarJogadoresDaCarreira);
+router.put('/:jogadorId', atualizarJogador);
+router.delete('/:jogadorId', deletarJogador); 
 
 module.exports = router;

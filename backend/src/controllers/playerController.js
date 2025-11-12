@@ -65,7 +65,79 @@ const listarJogadoresDaCarreira = async (req, res) =>{
   }
 };
 
+const atualizarJogador = async (req, res) => {
+  try{
+    const {jogadorId } = req.params;
+    const {nome_completo, posicao, nacionalidade} = req.body;
+    const usuarioId = req.user.id;
+
+    const jogador = await prisma.jogadores.findFirst({
+      where: {
+        id: parseInt(jogadorId),
+        carreira: {
+          usuario_id: usuarioId
+        },
+      },
+    });
+
+    if(!jogador){
+      return res.status(404).json({error: 'Jogador não encontrado para o usuário logado.'});
+    }
+
+    const jogadorAtualizado = await prisma.jogadores.update({
+      where: {
+        id: parseInt(jogadorId),
+      },
+      data: {
+        nome_completo,
+        posicao,
+        nacionalidade,
+      },
+    });
+
+    res.status(200).json(jogadorAtualizado);
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({error: 'Erro ao atualizar jogador.'});
+  }
+};
+
+const deletarJogador = async (req, res) => {
+  try{
+    const {jogadorId } = req.params;
+    const usuarioId = req.user.id;
+
+    const jogador = await prisma.jogadores.findFirst({
+      where: {
+        id: parseInt(jogadorId),
+        carreira: {
+          usuario_id: usuarioId,
+        },
+      },
+    });
+
+    if(!jogador){
+      return res.status(404).json({error: 'Jogador não encontrado para o usuário logado.'});
+    }
+
+    await prisma.jogadores.delete({
+      where: {
+        id: parseInt(jogadorId),
+      },
+    });
+
+    res.status(200).json({mensagem: 'Jogador deletado com sucesso.'});
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({error: 'Erro ao deletar jogador.'});
+  }
+};
+
 module.exports = {
   criarJogador,
-   listarJogadoresDaCarreira,
+  listarJogadoresDaCarreira,
+  atualizarJogador,
+  deletarJogador,
 };
