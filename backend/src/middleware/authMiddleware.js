@@ -23,6 +23,9 @@ const protect = async (req, res, next) => {
       return res.status(401).json({mensagem: 'Token inválido.'});
     }
   }
+  if (!token) {
+    return res.status(401).json({mensagem: 'Token não fornecido.'});
+  }
 };
 
 module.exports = {protect};

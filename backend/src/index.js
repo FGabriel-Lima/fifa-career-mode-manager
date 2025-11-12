@@ -12,6 +12,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/usuarios', userRoutes);
+app.use('/api/carreiras', require('./routes/careerRoutes'));
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
