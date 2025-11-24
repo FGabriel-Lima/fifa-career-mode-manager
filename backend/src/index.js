@@ -3,6 +3,7 @@ const express = require('express');
 const userRoutes = require('./routes/userRoutes');
 const carrerRoutes = require('./routes/careerRoutes');
 const playerRoutes = require('./routes/playerRoutes');
+const transferRoutes = require('./routes/transferRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +17,7 @@ app.get('/', (req, res) => {
 app.use('/api/usuarios', userRoutes);
 app.use('/api/carreiras', carrerRoutes);
 app.use('/api/jogadores', playerRoutes);
+app.use('/api/transferencias', transferRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
