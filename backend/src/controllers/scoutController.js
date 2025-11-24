@@ -1,9 +1,6 @@
 const prisma = require('../prismaClient');
 
 const adicionarObservacao = async (req, res) => {
-  console.log("--- DEBUG CONTROLLER ---");
-  console.log("Tem User?", !!req.user); // Vai imprimir true ou false
-  console.log("Conteúdo de req.user:", req.user);
   try {
     const {
       carreira_id, 
