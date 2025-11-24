@@ -5,6 +5,7 @@ const carrerRoutes = require('./routes/careerRoutes');
 const playerRoutes = require('./routes/playerRoutes');
 const transferRoutes = require('./routes/transferRoutes');
 const scoutRoutes = require('./routes/scoutRoutes');
+const leagueRoutes = require('./routes/leagueRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.use('/api/carreiras', carrerRoutes);
 app.use('/api/jogadores', playerRoutes);
 app.use('/api/transferencias', transferRoutes);
 app.use('/api/observacao', scoutRoutes);
+app.use('/api/ligas', leagueRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
