@@ -1,13 +1,28 @@
+// backend/src/routes/playerRoutes.js
+
 const express = require('express');
 const router = express.Router();
-const { criarJogador, listarJogadoresDaCarreira, atualizarJogador, deletarJogador } = require('../controllers/playerController');
+const { 
+  criarJogador, 
+  listarJogadoresDaCarreira, 
+  atualizarJogador, 
+  deletarJogador, 
+  atualizarDadosElenco, 
+  removerDoElenco // Adicione esta importação
+} = require('../controllers/playerController');
 
 const { protect } = require('../middleware/authMiddleware');
 
-// Aplicando o middleware de autenticação a todas as rotas deste arquivo
 router.use(protect);
 
-router.post('/', criarJogador);
+// 1. ROTAS ESPECÍFICAS PRIMEIRO (Evita o 404/Conflito)
+router.put('/elenco/:id', atualizarDadosElenco);
+router.delete('/elenco/:id', removerDoElenco); // Rota que faltava para o onRemovePlayer
+
+// 2. ROTAS COM PARÂMETROS GENÉRICOS DEPOIS
+// Ajuste na rota de POST para aceitar os params que o seu controller espera
+router.post('/:carreira_id/:temporada_id', criarJogador); 
+
 router.get('/:carreiraId', listarJogadoresDaCarreira);
 router.put('/:jogadorId', atualizarJogador);
 router.delete('/:jogadorId', deletarJogador); 

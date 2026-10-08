@@ -27,8 +27,7 @@ function DashboardPage() {
   if (!hasToken) return <Navigate to="/" replace />;
 
   const abrirCarreira = (id) => {
-    // A tela de detalhes da carreira ainda não existe.
-    console.log('Abrindo carreira:', id);
+    navigate(`/career/${id}`);
   };
 
   const onCareerCreated = (novaCarreira) => {
