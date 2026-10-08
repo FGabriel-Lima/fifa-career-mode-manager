@@ -36,6 +36,7 @@ const cases = {
   obterHallDaFama: [career.obterHallDaFama, { id: 9 }],
   atualizarClassificacao: [career.atualizarClassificacao, { temporada_id: 9 }],
   avancarTemporada: [career.avancarTemporada, { carreira_id: 9, temporada_anterior_id: 9 }],
+  atualizarCores: [career.atualizarCores, { temporada_id: 9 }, { cor_primaria: '#ffffff', cor_secundaria: '#000000' }],
   atualizarDadosElenco: [player.atualizarDadosElenco, { id: 9 }],
   removerDoElenco: [player.removerDoElenco, { id: 9 }],
   criarJogador: [player.criarJogador, { carreira_id: 9, temporada_id: 9 }, { nome_completo: 'X', posicao: 'ATA' }],

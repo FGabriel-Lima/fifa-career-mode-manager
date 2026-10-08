@@ -41,6 +41,9 @@ model temporadas {
   clube_nome              String    @db.VarChar(100)
   orcamento_transferencia Decimal?  @default(0)
   orcamento_salarios      Decimal?  @default(0)
+  // Cores do uniforme no formato #rrggbb (escolhidas pelo usuário)
+  cor_primaria            String?   @db.VarChar(7)
+  cor_secundaria          String?   @db.VarChar(7)
   carreira_id             Int
 
   // Se deletar a carreira, apaga as temporadas

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api, { apiError } from '../services/api';
 import { btnPrimary, FormError, inputClass } from './AuthLayout';
-import Crest from './Crest';
+import ColorFields from './ColorFields';
+import Crest, { kitFor } from './Crest';
 
 const initialData = {
   nome_carreira: '',
@@ -14,13 +15,17 @@ function NewCareerModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState(initialData);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [colors, setColors] = useState(null); // null = cores automáticas pelo nome
 
   // Limpa o formulário só quando o modal abre.
   useEffect(() => {
     if (!isOpen) return;
     setFormData(initialData);
+    setColors(null);
     setError('');
   }, [isOpen]);
+
+  const kit = colors || kitFor(formData.clube_nome || '?');
 
   // Esc fecha o modal.
   useEffect(() => {
@@ -42,6 +47,8 @@ function NewCareerModal({ isOpen, onClose, onSuccess }) {
       const response = await api.post('/carreiras', {
         ...formData,
         orcamento_transferencia: parseFloat(formData.orcamento_transferencia || 0),
+        cor_primaria: kit[0],
+        cor_secundaria: kit[1],
       });
       onSuccess(response.data);
     } catch (err) {
@@ -80,12 +87,12 @@ function NewCareerModal({ isOpen, onClose, onSuccess }) {
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Crest name={formData.clube_nome || '?'} className="h-14 w-12 shrink-0" />
+            <Crest name={formData.clube_nome || '?'} colors={kit} className="h-14 w-12 shrink-0" />
             <div>
               <h2 id="nova-carreira-titulo" className="font-kit text-3xl font-bold uppercase leading-none">
                 Nova carreira
               </h2>
-              <p className="mt-1 text-sm text-muted">O escudo muda conforme o nome do clube.</p>
+              <p className="mt-1 text-sm text-muted">Escolha o clube e as cores do uniforme.</p>
             </div>
           </div>
           <button
@@ -107,6 +114,10 @@ function NewCareerModal({ isOpen, onClose, onSuccess }) {
             min: 0,
             inputMode: 'numeric',
           })}
+        </div>
+
+        <div className="mt-5">
+          <ColorFields value={kit} onChange={setColors} />
         </div>
 
         <div className="mt-5">

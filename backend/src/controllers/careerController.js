@@ -2,6 +2,9 @@
 const prisma = require('../prismaClient')
 const { carreiraDoUsuario, temporadaDoUsuario } = require('../ownership')
 
+// Aceita só "#rrggbb"; qualquer outra coisa vira null (o front usa a cor automática).
+const cor = (valor) => (/^#[0-9a-f]{6}$/i.test(valor || '') ? valor.toLowerCase() : null)
+
 // 1. Criar Carreira (Já inicializa a Temporada e a Liga)
 const criarCarreira = async (req, res) => {
   try {
@@ -10,7 +13,9 @@ const criarCarreira = async (req, res) => {
       nome_temporada,
       clube_nome,
       orcamento_transferencia,
-      nome_liga
+      nome_liga,
+      cor_primaria,
+      cor_secundaria
     } = req.body
     const usuarioId = req.user.id
 
@@ -29,6 +34,8 @@ const criarCarreira = async (req, res) => {
             nome: nome_temporada,
             clube_nome: clube_nome,
             orcamento_transferencia: orcamento_transferencia || 0,
+            cor_primaria: cor(cor_primaria),
+            cor_secundaria: cor(cor_secundaria),
             ligas: {
               create: { nome_liga: nome_liga || 'EFL League Two' }
             }
@@ -348,6 +355,8 @@ const avancarTemporada = async (req, res) => {
         carreira_id: parseInt(carreira_id),
         nome: nome_nova_temporada, // Ex: "2025/2026"
         clube_nome: temporadaAnterior.clube_nome, // Mantém o mesmo clube
+        cor_primaria: temporadaAnterior.cor_primaria,
+        cor_secundaria: temporadaAnterior.cor_secundaria,
         orcamento_transferencia: parseFloat(novo_orcamento || temporadaAnterior.orcamento_transferencia),
         
         // Cria a Liga (pode ser a mesma ou nova se subiu de divisão)
@@ -392,7 +401,32 @@ const avancarTemporada = async (req, res) => {
   }
 };
 
+// Troca as cores do clube em todas as temporadas da carreira com esse mesmo clube.
+const atualizarCores = async (req, res) => {
+  try {
+    const temporada = await temporadaDoUsuario(req.params.temporada_id, req.user.id)
+    if (!temporada) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' })
+    }
+
+    const cores = { cor_primaria: cor(req.body.cor_primaria), cor_secundaria: cor(req.body.cor_secundaria) }
+    if (!cores.cor_primaria || !cores.cor_secundaria) {
+      return res.status(400).json({ error: 'Escolha as duas cores no formato #rrggbb.' })
+    }
+
+    await prisma.temporadas.updateMany({
+      where: { carreira_id: temporada.carreira_id, clube_nome: temporada.clube_nome },
+      data: cores
+    })
+    res.status(200).json(cores)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro ao salvar as cores.' })
+  }
+}
+
 module.exports = {
+  atualizarCores,
   criarCarreira,
   listarCarreiras,
   obterHallDaFama,

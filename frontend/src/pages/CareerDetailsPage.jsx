@@ -20,6 +20,7 @@ import EditPlayerModal from '../components/career/EditPlayerModal';
 import AddWorldTitleModal from '../components/career/AddWorldTitleModal';
 import AddCandidateModal from '../components/career/AddCandidateModal';
 import NewSeasonModal from '../components/career/NewSeasonModal';
+import ClubColorsModal from '../components/career/ClubColorsModal';
 
 export default function CareerDetailsPage() {
   const { id } = useParams();
@@ -157,7 +158,7 @@ export default function CareerDetailsPage() {
         </button>
       </div>
 
-      <ClubHeader careerName={carreira.nome_carreira} data={temporadaAtiva} />
+      <ClubHeader careerName={carreira.nome_carreira} data={temporadaAtiva} onEditColors={() => setModal('colors')} />
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <SeasonSelector seasons={carreira.temporadas} selectedSeason={temporadaAtiva} onSeasonChange={setTemporadaAtiva} />
@@ -212,6 +213,7 @@ export default function CareerDetailsPage() {
         </aside>
       </div>
 
+      <ClubColorsModal isOpen={modal === 'colors'} onClose={closeModal} season={temporadaAtiva} onSuccess={refreshData} />
       <UpdateLeagueModal isOpen={modal === 'league'} onClose={closeModal} seasonId={temporadaAtiva.id} seasonData={temporadaAtiva} onSuccess={refreshData} />
       <AddPlayerModal isOpen={modal === 'player'} onClose={closeModal} careerId={id} seasonId={temporadaAtiva.id} onSuccess={refreshData} />
       <EditPlayerModal isOpen={modal === 'editPlayer'} onClose={closeModal} player={selectedPlayer} onSuccess={refreshData} />

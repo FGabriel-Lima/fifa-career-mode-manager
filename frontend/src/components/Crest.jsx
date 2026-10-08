@@ -22,6 +22,14 @@ export function kitFor(name = '') {
   return KITS[hash % KITS.length];
 }
 
+// Cores escolhidas pelo usuário na temporada; sem elas, o par automático pelo nome.
+export function clubColors(temporada) {
+  if (temporada?.cor_primaria && temporada?.cor_secundaria) {
+    return [temporada.cor_primaria, temporada.cor_secundaria];
+  }
+  return kitFor(temporada?.clube_nome);
+}
+
 // "Quixadá FC" -> "QU", "Ceará" -> "CE", "Real Madrid" -> "RM" (ignora FC, SC, SE, CR, de...).
 export function initialsFor(name = '') {
   const words = name
@@ -32,8 +40,8 @@ export function initialsFor(name = '') {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-function Crest({ name, className = '' }) {
-  const [primary, secondary] = kitFor(name);
+function Crest({ name, colors, className = '' }) {
+  const [primary, secondary] = colors || kitFor(name);
   return (
     <svg viewBox="0 0 40 46" className={className} aria-hidden="true">
       <path d="M20 1 L38 7 V22 C38 33 30 41 20 45 C10 41 2 33 2 22 V7 Z" fill={primary} stroke={secondary} strokeWidth="2" />

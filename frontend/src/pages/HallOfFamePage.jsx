@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import { kitFor } from '../components/Crest';
+import { clubColors } from '../components/Crest';
 import { BOARDS, rankBy } from '../components/career/HallOfFame';
 import { Icon } from '../components/career/ui';
 
@@ -75,7 +75,7 @@ export default function HallOfFamePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [jogadores, setJogadores] = useState([]);
-  const [clube, setClube] = useState('');
+  const [temporada, setTemporada] = useState(null);
   const [loading, setLoading] = useState(true);
   const hasToken = Boolean(localStorage.getItem('token'));
 
@@ -84,7 +84,7 @@ export default function HallOfFamePage() {
     Promise.all([api.get(`/carreiras/${id}/hall-of-fame?limit=100`), api.get(`/carreiras/${id}`)])
       .then(([ranking, carreira]) => {
         setJogadores(ranking.data);
-        setClube(carreira.data.temporadas?.[0]?.clube_nome || '');
+        setTemporada(carreira.data.temporadas?.[0] || null);
       })
       .catch((err) => {
         if (err.response?.status === 401) navigate('/');
@@ -94,7 +94,8 @@ export default function HallOfFamePage() {
 
   if (!hasToken) return <Navigate to="/" replace />;
 
-  const colors = kitFor(clube);
+  const colors = clubColors(temporada);
+  const clube = temporada?.clube_nome || '';
 
   return (
     <div className="min-h-screen bg-pitch-950 font-display text-chalk">

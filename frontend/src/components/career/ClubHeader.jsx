@@ -1,10 +1,12 @@
 import React from 'react';
-import Crest, { kitFor } from '../Crest';
+import Crest, { clubColors } from '../Crest';
 import { money } from '../../format';
+import { Icon } from './ui';
 
-export function ClubHeader({ careerName, data }) {
+export function ClubHeader({ careerName, data, onEditColors }) {
   const club = data?.clube_nome || 'Clube';
-  const [primary, secondary] = kitFor(club);
+  const colors = clubColors(data);
+  const [primary, secondary] = colors;
   const position = data?.currentPosition;
 
   const stats = [
@@ -21,10 +23,18 @@ export function ClubHeader({ careerName, data }) {
         style={{ background: `repeating-linear-gradient(90deg, ${primary} 0 34px, ${secondary} 34px 46px)` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-pitch-900/10 via-pitch-900/90 to-pitch-900" />
+        <button
+          type="button"
+          onClick={onEditColors}
+          className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg bg-pitch-950/80 px-3 py-1.5 text-sm font-semibold text-chalk backdrop-blur transition hover:bg-pitch-950"
+        >
+          <Icon name="palette" className="text-lg" />
+          Cores
+        </button>
       </div>
 
       <div className="relative -mt-14 flex flex-col gap-4 px-5 pb-6 sm:flex-row sm:items-end sm:gap-6 sm:px-8">
-        <Crest name={club} className="h-28 w-24 shrink-0 drop-shadow-[0_8px_14px_rgba(0,0,0,0.55)]" />
+        <Crest name={club} colors={colors} className="h-28 w-24 shrink-0 drop-shadow-[0_8px_14px_rgba(0,0,0,0.55)]" />
         <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-widest text-neon">{data?.leagueName || 'Liga'}</p>
           <h1 className="font-kit text-5xl font-bold uppercase leading-none tracking-tight sm:text-6xl">{club}</h1>
