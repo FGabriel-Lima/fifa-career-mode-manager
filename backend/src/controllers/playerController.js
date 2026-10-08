@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const { elencoDoUsuario } = require('../ownership');
 
 const criarJogador = async (req, res) => {
   try {
@@ -15,13 +16,16 @@ const criarJogador = async (req, res) => {
       return res.status(400).json({ error: 'Campos obrigatórios: Nome, Posição, Carreira e Temporada.' });
     }
 
-    // Verifica se a carreira pertence ao usuário
-    const carreira = await prisma.carreiras.findUnique({
-      where: { id: parseInt(carreira_id), usuario_id: usuarioId },
+    // Verifica se a temporada é da carreira informada e pertence ao usuário
+    const temporada = await prisma.temporadas.findFirst({
+      where: {
+        id: parseInt(temporada_id),
+        carreira: { id: parseInt(carreira_id), usuario_id: usuarioId },
+      },
     });
 
-    if (!carreira) {
-      return res.status(404).json({ error: 'Carreira não encontrada.' });
+    if (!temporada) {
+      return res.status(404).json({ error: 'Carreira ou temporada não encontrada.' });
     }
 
     // CRIAÇÃO DUPLA (Transaction): Cria o Jogador E o registro dele na Temporada
@@ -162,6 +166,9 @@ const atualizarDadosElenco = async (req, res) => {
   try {
     const { id } = req.params; // ID da entrada no elenco_temporada
     const { overall, idade, valor_mercado, jogos_disputados, gols, assistencias } = req.body;
+    if (!(await elencoDoUsuario(id, req.user.id))) {
+      return res.status(404).json({ error: 'Registro de elenco não encontrado.' });
+    }
 
     // 1. Atualiza os dados da temporada atual (o que você já fazia)
     const registroAtualizado = await prisma.elenco_temporada.update({
@@ -214,6 +221,9 @@ const atualizarDadosElenco = async (req, res) => {
 const removerDoElenco = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!(await elencoDoUsuario(id, req.user.id))) {
+      return res.status(404).json({ error: 'Registro de elenco não encontrado.' });
+    }
 
     await prisma.elenco_temporada.delete({
       where: { id: parseInt(id) }

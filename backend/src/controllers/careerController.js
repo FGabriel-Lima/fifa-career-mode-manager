@@ -1,5 +1,6 @@
 // backend/src/controllers/careerController.js
 const prisma = require('../prismaClient')
+const { carreiraDoUsuario, temporadaDoUsuario } = require('../ownership')
 
 // 1. Criar Carreira (Já inicializa a Temporada e a Liga)
 const criarCarreira = async (req, res) => {
@@ -71,6 +72,9 @@ const obterHallDaFama = async (req, res) => {
   try {
     const { id } = req.params
     const { limit, orderBy } = req.query
+    if (!(await carreiraDoUsuario(id, req.user.id))) {
+      return res.status(404).json({ error: 'Carreira não encontrada.' })
+    }
 
     const sortField = orderBy || 'total_gols'
 
@@ -215,6 +219,9 @@ const atualizarClassificacao = async (req, res) => {
       nome_liga,
       orcamento_transferencia
     } = req.body
+    if (!(await temporadaDoUsuario(temporada_id, req.user.id))) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' })
+    }
 
     await prisma.temporadas.update({
       where: { id: parseInt(temporada_id) },
@@ -321,9 +328,12 @@ const avancarTemporada = async (req, res) => {
     const { carreira_id, temporada_anterior_id } = req.params;
     const { nome_nova_temporada, novo_orcamento, nome_nova_liga } = req.body;
 
-    // 1. Busca a temporada anterior para pegar dados do clube e elenco
-    const temporadaAnterior = await prisma.temporadas.findUnique({
-      where: { id: parseInt(temporada_anterior_id) },
+    // 1. Busca a temporada anterior (da mesma carreira do usuário) para pegar dados do clube e elenco
+    const temporadaAnterior = await prisma.temporadas.findFirst({
+      where: {
+        id: parseInt(temporada_anterior_id),
+        carreira: { id: parseInt(carreira_id), usuario_id: req.user.id }
+      },
       include: { elenco: true }
     });
 
@@ -360,9 +370,7 @@ const avancarTemporada = async (req, res) => {
         jogador_id: jogador.jogador_id,
         // Mantém overall, mas aumenta idade e zera stats
         overall: jogador.overall,
-        potencial: jogador.potencial,
         idade: jogador.idade + 1, // Envelhece o jogador
-        posicao: jogador.posicao,
         gols: 0,
         assistencias: 0,
         jogos_disputados: 0,

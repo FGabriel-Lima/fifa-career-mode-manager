@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const { carreiraDoUsuario, temporadaDoUsuario, premioDoUsuario } = require('../ownership');
 
 const adicionarTitulo = async (req, res) => {
   try {
@@ -36,7 +37,10 @@ const adicionarTitulo = async (req, res) => {
 const listarHistoricoTitulos = async (req, res) => {
   try {
     const { carreiraId } = req.params;
-    
+    if (!(await carreiraDoUsuario(carreiraId, req.user.id))) {
+      return res.status(404).json({ error: 'Carreira não encontrada.' });
+    }
+
     const titulos = await prisma.titulos_conquistados.findMany({
       where: {
         temporada: {
@@ -60,6 +64,9 @@ const listarHistoricoTitulos = async (req, res) => {
 const listarTitulos = async (req, res) => {
   try {
     const { temporadaId } = req.params;
+    if (!(await temporadaDoUsuario(temporadaId, req.user.id))) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' });
+    }
     const titulos = await prisma.titulos_conquistados.findMany({
       where: { temporada_id: parseInt(temporadaId) }
     });
@@ -73,7 +80,10 @@ const listarTitulos = async (req, res) => {
 const inicializarPremio = async (req, res) => {
   try {
     const { temporada_id } = req.body;
-    
+    if (!(await temporadaDoUsuario(temporada_id, req.user.id))) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' });
+    }
+
     // Verifica se já existe
     let premio = await prisma.premios_temporada.findUnique({
       where: { temporada_id: parseInt(temporada_id) }
@@ -95,6 +105,9 @@ const inicializarPremio = async (req, res) => {
 const adicionarCandidato = async (req, res) => {
   try {
     const { premio_id, nome, clube, gols_ch, assist_ch, titulos } = req.body;
+    if (!(await premioDoUsuario(premio_id, req.user.id))) {
+      return res.status(404).json({ error: 'Prêmio não encontrado.' });
+    }
 
     const candidato = await prisma.candidatos_premio.create({
       data: {
@@ -122,6 +135,9 @@ const adicionarCandidato = async (req, res) => {
 const calcularVencedor = async (req, res) => {
   try {
     const { premioId } = req.params;
+    if (!(await premioDoUsuario(premioId, req.user.id))) {
+      return res.status(404).json({ error: 'Prêmio não encontrado.' });
+    }
 
     const candidatos = await prisma.candidatos_premio.findMany({
       where: { premio_id: parseInt(premioId) }
@@ -172,6 +188,9 @@ const buscarPremiosClube = async (req, res) => {
   try {
     const { temporadaId } = req.params;
     const tempId = parseInt(temporadaId);
+    if (!(await temporadaDoUsuario(tempId, req.user.id))) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' });
+    }
 
     // 1. Busca o Artilheiro (quem tem mais gols no elenco desta temporada)
     const artilheiro = await prisma.elenco_temporada.findFirst({
@@ -217,6 +236,9 @@ const salvarCampeoesMundo = async (req, res) => {
   try {
     const { temporada_id } = req.params;
     const { campeoes } = req.body; // Agora espera [{nome_titulo, clube_vencedor, clube_vice}]
+    if (!(await temporadaDoUsuario(temporada_id, req.user.id))) {
+      return res.status(404).json({ error: 'Temporada não encontrada.' });
+    }
 
     const novosRegistros = await Promise.all(
       campeoes.map(c => 
