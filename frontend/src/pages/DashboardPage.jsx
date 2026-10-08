@@ -1,94 +1,82 @@
 import React, { useEffect, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
 import CareerCard from '../components/CareerCard';
-import NewCareerModal from '../components/NewCareerModal'; 
-import { useNavigate } from 'react-router-dom';
+import NewCareerModal from '../components/NewCareerModal';
 
 function DashboardPage() {
   const [carreiras, setCarreiras] = useState([]);
   const [loading, setLoading] = useState(true);
-  
   const [showModal, setShowModal] = useState(false);
-  
   const navigate = useNavigate();
+  const hasToken = Boolean(localStorage.getItem('token'));
 
   useEffect(() => {
-    const fetchCarreiras = async () => {
-      try {
-        const response = await api.get('/carreiras');
-        setCarreiras(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar carreiras", error);
+    if (!hasToken) return;
+    api
+      .get('/carreiras')
+      .then((response) => setCarreiras(response.data))
+      .catch((error) => {
         if (error.response?.status === 401) navigate('/');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCarreiras();
-  }, [navigate]);
+      })
+      .finally(() => setLoading(false));
+  }, [hasToken, navigate]);
+
+  // Sem login, volta para a tela de entrada.
+  if (!hasToken) return <Navigate to="/" replace />;
 
   const abrirCarreira = (id) => {
-    console.log("Abrindo carreira:", id);
-    navigate(`/career/${id}`); 
+    navigate(`/career/${id}`);
   };
 
   const onCareerCreated = (novaCarreira) => {
-    setCarreiras([novaCarreira, ...carreiras]); 
+    setCarreiras([novaCarreira, ...carreiras]);
     setShowModal(false);
   };
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-[#102210] group/design-root overflow-x-hidden font-display">
-      <div className="layout-container flex h-full grow flex-col">
-        
-        <Navbar />
+    <div className="min-h-screen bg-pitch-950 font-display text-chalk">
+      <Navbar />
 
-        <main className="flex-1 px-4 sm:px-8 md:px-20 lg:px-40 py-5">
-          <div className="layout-content-container flex flex-col max-w-[960px] flex-1 mx-auto">
-            
-            <div className="flex flex-wrap justify-between gap-3 p-4">
-              <p className="text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-                Suas Carreiras
-              </p>
-            </div>
-
-            {loading && <p className="text-white p-4">Carregando seus saves...</p>}
-
-            {!loading && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6 p-4">
-                
-                <div 
-                  onClick={() => setShowModal(true)}
-                  className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-[#11d411]/50 p-3 text-center transition-all hover:border-[#11d411] hover:bg-[#11d411]/10 cursor-pointer min-h-[280px]"
-                >
-                  <span className="material-symbols-outlined text-[#11d411]" style={{fontSize: '48px'}}>add_circle</span>
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-white text-lg font-bold leading-tight">Nova Carreira</p>
-                    <p className="text-white/70 text-sm font-normal">Comece uma nova jornada</p>
-                  </div>
-                </div>
-
-                {/* Lista de Carreiras */}
-                {carreiras.map((carreira) => (
-                  <CareerCard 
-                    key={carreira.id} 
-                    carreira={carreira} 
-                    onOpen={abrirCarreira} 
-                  />
-                ))}
-              </div>
-            )}
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-14">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-neon">Seus saves</p>
+            <h1 className="mt-1 font-kit text-5xl font-bold uppercase tracking-tight sm:text-6xl">Suas carreiras</h1>
           </div>
-        </main>
+          {!loading && (
+            <p className="text-muted">
+              {carreiras.length === 0
+                ? 'Nenhuma carreira ainda.'
+                : `${carreiras.length} ${carreiras.length === 1 ? 'carreira' : 'carreiras'} em andamento`}
+            </p>
+          )}
+        </div>
 
-        <NewCareerModal 
-          isOpen={showModal} 
-          onClose={() => setShowModal(false)} 
-          onSuccess={onCareerCreated} 
-        />
+        {loading ? (
+          <p className="mt-10 text-muted">Carregando seus saves…</p>
+        ) : (
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-pitch-700 text-center transition hover:border-neon hover:bg-neon/5"
+            >
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-neon/10 text-neon">
+                <span className="material-symbols-outlined text-3xl">add</span>
+              </span>
+              <span className="text-lg font-bold">Nova carreira</span>
+              <span className="text-sm text-muted">Escolha o clube e comece a temporada</span>
+            </button>
 
-      </div>
+            {carreiras.map((carreira) => (
+              <CareerCard key={carreira.id} carreira={carreira} onOpen={abrirCarreira} />
+            ))}
+          </div>
+        )}
+      </main>
+
+      <NewCareerModal isOpen={showModal} onClose={() => setShowModal(false)} onSuccess={onCareerCreated} />
     </div>
   );
 }
