@@ -1,5 +1,5 @@
 // Garante que rotas com ID de outro usuário respondem 404 sem ler/gravar dados.
-// Roda com: node --test backend/test
+// Roda com: npm test (dentro de backend/)
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
