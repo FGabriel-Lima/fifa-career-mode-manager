@@ -1,67 +1,47 @@
 import React from 'react';
-import { Trophy, Users, Star, Target, Coins } from 'lucide-react';
+import Crest, { kitFor } from '../Crest';
+import { money } from '../../format';
 
-export function ClubHeader({ data }) {
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(value || 0);
-  };
-  // data aqui é a 'temporadaAtiva'
-  const teamName = data?.clube_nome || "Nome do Clube";
-  const league = data?.leagueName || "Liga";
-  const position = data?.currentPosition || "--";
+export function ClubHeader({ careerName, data }) {
+  const club = data?.clube_nome || 'Clube';
+  const [primary, secondary] = kitFor(club);
+  const position = data?.currentPosition;
+
+  const stats = [
+    { label: 'Posição', value: position && position !== '--' ? `${position}º` : '—' },
+    { label: 'Pontos', value: data?.stats?.points ?? 0 },
+    { label: 'Orçamento', value: money(data?.orcamento_transferencia), className: 'text-gold' },
+  ];
 
   return (
-    <div className="bg-[#0d1a0d] p-8 rounded-2xl border border-[#11d411]/20 relative overflow-hidden">
-      {/* Detalhe estético de fundo */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-[#11d411]/5 rounded-full -mr-32 -mt-32 blur-3xl" />
-      
-      <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-        {/* Logo do Clube (Placeholder) */}
-        <div className="w-32 h-32 bg-gradient-to-br from-[#11d411]/20 to-[#102210] rounded-2xl border-2 border-[#11d411]/30 flex items-center justify-center shadow-2xl shadow-[#11d411]/10">
-          <Trophy className="w-16 h-16 text-[#11d411]" />
-        </div>
+    <section className="overflow-hidden rounded-2xl border border-pitch-700/70 bg-pitch-900">
+      {/* Listras da camisa do clube, como no card do painel */}
+      <div
+        className="relative h-28 sm:h-36"
+        style={{ background: `repeating-linear-gradient(90deg, ${primary} 0 34px, ${secondary} 34px 46px)` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-pitch-900/10 via-pitch-900/90 to-pitch-900" />
+      </div>
 
-        <div className="flex-1 text-center md:text-left">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-            <h1 className="text-4xl font-black uppercase tracking-tighter text-white">
-              {teamName}
-            </h1>
-            <div className="flex items-center gap-2 px-4 py-1 bg-[#11d411] text-[#102210] rounded-full font-bold text-sm mx-auto md:mx-0">
-              <Star className="w-4 h-4 fill-current" />
-              {position}º LUGAR
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-center md:justify-start gap-6 text-white/60">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-[#11d411]" />
-              <span className="font-medium">{league}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#11d411]" />
-              <span className="font-medium">Temporada {data?.nome}</span>
-            </div>
-            {/* Orçamento Transferências */}
-        <div className="flex flex-col">
-          <span className="text-[10px] uppercase font-bold text-white/40">Transferências</span>
-          <div className="flex items-center gap-2">
-            <Coins className="w-4 h-4 text-[#11d411]" />
-            <span className="font-bold text-white">{formatCurrency(data?.orcamento_transferencia)}</span>
-          </div>
-        </div>
-          </div>
-        </div>
-
-        {/* Card de Pontuação Rápida */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl min-w-[160px] text-center">
-          <p className="text-white/40 text-xs font-bold uppercase mb-1">Pontos na Liga</p>
-          <p className="text-5xl font-black text-[#11d411]">{data?.stats?.points || 0}</p>
+      <div className="relative -mt-14 flex flex-col gap-4 px-5 pb-6 sm:flex-row sm:items-end sm:gap-6 sm:px-8">
+        <Crest name={club} className="h-28 w-24 shrink-0 drop-shadow-[0_8px_14px_rgba(0,0,0,0.55)]" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-widest text-neon">{data?.leagueName || 'Liga'}</p>
+          <h1 className="font-kit text-5xl font-bold uppercase leading-none tracking-tight sm:text-6xl">{club}</h1>
+          <p className="mt-2 truncate text-muted">
+            {careerName} · Temporada {data?.nome}
+          </p>
         </div>
       </div>
-    </div>
+
+      <dl className="grid grid-cols-3 divide-x divide-pitch-700/70 border-t border-pitch-700/70">
+        {stats.map((s) => (
+          <div key={s.label} className="px-5 py-4 sm:px-8">
+            <dt className="text-[11px] uppercase tracking-wider text-muted">{s.label}</dt>
+            <dd className={`font-kit text-2xl font-bold sm:text-3xl ${s.className || ''}`}>{s.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

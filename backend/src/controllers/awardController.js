@@ -212,7 +212,7 @@ const buscarPremiosClube = async (req, res) => {
       premios.push({
         player: artilheiro.jogador.nome_completo,
         award: "Artilheiro da Temporada",
-        stats: `${artilheiro.gols} Gols`,
+        stats: `${artilheiro.gols} gols`,
         icon: "Target"
       });
     }
@@ -220,7 +220,7 @@ const buscarPremiosClube = async (req, res) => {
       premios.push({
         player: garcom.jogador.nome_completo,
         award: "Líder de Assistências",
-        stats: `${garcom.assistencias} Assists`,
+        stats: `${garcom.assistencias} assist.`,
         icon: "TrendingUp"
       });
     }

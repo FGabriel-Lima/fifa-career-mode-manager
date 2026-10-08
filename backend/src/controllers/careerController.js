@@ -173,6 +173,7 @@ const buscarCarreiraPorId = async (req, res) => {
           gols: e.gols,
           assistencias: e.assistencias,
           jogos_disputados: e.jogos_disputados || 0,
+          valor_mercado: e.valor_mercado || 0,
           onLoan: false
         })),
 

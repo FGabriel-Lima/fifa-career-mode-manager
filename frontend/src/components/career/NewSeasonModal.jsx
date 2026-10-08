@@ -1,125 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Calendar, ArrowRight, DollarSign } from 'lucide-react';
+import { Field, FormError } from '../AuthLayout';
+import { Modal, ModalActions, useSubmit } from './ui';
+
+// "2025/26" -> "2026/27", "2025" -> "2026"; qualquer outro formato fica como está.
+const nextSeason = (name = '') =>
+  /^\d+(\/\d+)?$/.test(name.trim()) ? name.trim().split('/').map((y) => String(Number(y) + 1).padStart(y.length, '0')).join('/') : name;
 
 export default function NewSeasonModal({ isOpen, onClose, careerId, currentSeason, onSuccess }) {
-  const [formData, setFormData] = useState({
-    nome: '',
-    orcamento: '',
-    liga: ''
-  });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ nome: '', liga: '', orcamento: '' });
+  const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  React.useEffect(() => {
-    if (currentSeason) {
-      setFormData({
-        nome: incrementYear(currentSeason.nome),
-        orcamento: currentSeason.orcamento_transferencia,
-        liga: currentSeason.leagueName
-      });
-    }
-  }, [currentSeason]);
+  const { busy, error, setError, submit } = useSubmit(async () => {
+    const res = await api.post(`/carreiras/${careerId}/avancar/${currentSeason.id}`, {
+      nome_nova_temporada: form.nome,
+      novo_orcamento: form.orcamento,
+      nome_nova_liga: form.liga,
+    });
+    onSuccess(res.data.novaTemporada.id);
+    onClose();
+  }, 'Não foi possível começar a nova temporada. Tente de novo.');
 
-  const incrementYear = (str) => {
-    try {
-        const parts = str.split('/');
-        if(parts.length === 2) {
-            const y1 = parseInt(parts[0]) + 1;
-            const y2 = parseInt(parts[1]) + 1;
-            return `${y1}/${y2}`;
-        }
-        return str; 
-    } catch { return ''; }
-  };
+  useEffect(() => {
+    if (!isOpen || !currentSeason) return;
+    setForm({
+      nome: nextSeason(currentSeason.nome),
+      liga: currentSeason.leagueName || '',
+      orcamento: currentSeason.orcamento_transferencia || '',
+    });
+    setError('');
+  }, [isOpen, currentSeason, setError]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await api.post(`/carreiras/${careerId}/avancar/${currentSeason.id}`, {
-        nome_nova_temporada: formData.nome,
-        novo_orcamento: formData.orcamento,
-        nome_nova_liga: formData.liga
-      });
-      
-      alert("Temporada Avançada com Sucesso!");
-      
-      // --- A CORREÇÃO ESTÁ AQUI ---
-      // Pegamos o ID que o backend devolveu e passamos para o pai
-      const novoId = response.data.novaTemporada.id;
-      onSuccess(novoId); 
-      // ----------------------------
-      
-      onClose();
-    } catch (error) {
-      alert("Erro ao criar nova temporada.");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  // ... (O restante do return do JSX continua igual)
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-      <div className="bg-[#1a1a1a] border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl">
-        <h2 className="text-2xl font-black text-white mb-2 flex items-center gap-2">
-          <Calendar className="text-green-500" /> Nova Temporada
-        </h2>
-        <p className="text-white/40 text-sm mb-6">
-          Isso irá finalizar a temporada atual, resetar as estatísticas e adicionar +1 ano na idade dos jogadores.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-white/40 uppercase mb-1">Nome da Temporada</label>
-            <input 
-              value={formData.nome} 
-              onChange={e => setFormData({...formData, nome: e.target.value})}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-              placeholder="Ex: 2026/2027"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-white/40 uppercase mb-1">Liga (Subiu de divisão?)</label>
-            <input 
-              value={formData.liga} 
-              onChange={e => setFormData({...formData, liga: e.target.value})}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-white/40 uppercase mb-1">Orçamento Inicial</label>
-            <div className="relative">
-                <DollarSign className="absolute left-3 top-3 w-4 h-4 text-white/40" />
-                <input 
-                type="number"
-                value={formData.orcamento} 
-                onChange={e => setFormData({...formData, orcamento: e.target.value})}
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-3 pl-10 text-white focus:border-green-500 outline-none"
-                />
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-6">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold">
-              Cancelar
-            </button>
-            <button 
-                type="submit" 
-                disabled={loading}
-                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center justify-center gap-2"
-            >
-              {loading ? 'Processando...' : <>Avançar <ArrowRight className="w-4 h-4" /></>}
-            </button>
-          </div>
-        </form>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={submit}
+      title="Encerrar temporada"
+      subtitle={`O elenco de ${currentSeason?.nome || 'agora'} passa para a próxima com estatísticas zeradas e um ano a mais de idade.`}
+    >
+      <div className="grid gap-5">
+        <Field id="temp-nome" name="nome" label="Próxima temporada" placeholder="2026/27" value={form.nome} onChange={set} required autoFocus />
+        <Field id="temp-liga" name="liga" label="Liga" value={form.liga} onChange={set} />
+        <Field id="temp-orcamento" name="orcamento" label="Orçamento de transferências (R$)" type="number" min="0" inputMode="numeric" value={form.orcamento} onChange={set} />
       </div>
-    </div>
+      <div className="mt-5"><FormError>{error}</FormError></div>
+      <ModalActions submitLabel={`Começar ${form.nome || 'temporada'}`} busy={busy} onCancel={onClose} />
+    </Modal>
   );
 }

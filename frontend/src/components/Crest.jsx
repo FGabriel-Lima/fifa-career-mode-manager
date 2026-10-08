@@ -22,11 +22,11 @@ export function kitFor(name = '') {
   return KITS[hash % KITS.length];
 }
 
-// "Quixadá FC" -> "QU", "Ceará" -> "CE", "Real Madrid" -> "RM" (ignora FC, SC, de...).
+// "Quixadá FC" -> "QU", "Ceará" -> "CE", "Real Madrid" -> "RM" (ignora FC, SC, SE, CR, de...).
 export function initialsFor(name = '') {
   const words = name
     .split(/\s+/)
-    .filter((w) => w && !/^(fc|sc|ec|ac|cf|clube|de|do|da)$/i.test(w));
+    .filter((w) => w && !/^(fc|sc|ec|ac|cf|se|cr|clube|de|do|da)$/i.test(w));
   if (words.length === 0) return '?';
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();

@@ -1,137 +1,89 @@
 import React, { useMemo } from 'react';
-import { Edit2, Trash2, User } from 'lucide-react';
+import { actionBtn, Empty, Icon, Panel } from './ui';
+
+// Ordem do gol ao ataque; os sinônimos caem na mesma faixa.
+export const POSITIONS = ['GOL', 'LD', 'ZAG', 'LE', 'VOL', 'MC', 'MD', 'ME', 'MEI', 'PD', 'PE', 'SA', 'ATA'];
+const ORDER = { ...Object.fromEntries(POSITIONS.map((p, i) => [p, i])), ADD: 1, ADE: 3 };
+const rank = (pos) => ORDER[(pos || '').toUpperCase().trim()] ?? 99;
+
+const ovrColor = (ovr) => (ovr >= 80 ? 'text-neon' : ovr >= 70 ? 'text-chalk' : 'text-muted');
 
 export function SquadTab({ data, onAddPlayer, onEditPlayer, onRemovePlayer }) {
-  
-  // 1. Defina a ordem lógica das posições em Português
-  const ordemPosicoes = {
-    'GOL': 1,
-    'LD': 2,  'ADD': 2, // Ala Direito Defensivo
-    'ZAG': 3,
-    'LE': 4,  'ADE': 4, // Ala Esquerdo Defensivo
-    'VOL': 5,
-    'MC': 6,
-    'MD': 7,
-    'ME': 8,
-    'MEI': 9,
-    'PD': 10,
-    'PE': 11,
-    'SA': 12,
-    'ATA': 13
-  };
-
-  // 2. Crie uma lista ordenada usando useMemo (para performance)
-  const elencoOrdenado = useMemo(() => {
-    const lista = data?.squad || [];
-    
-    return [...lista].sort((a, b) => {
-      // Normaliza para maiúsculo e remove espaços para garantir que encontre no mapa
-      const posA = a.position ? a.position.toUpperCase().trim() : '';
-      const posB = b.position ? b.position.toUpperCase().trim() : '';
-
-      // Pega o valor da ordem (se não achar, joga pro final com valor 99)
-      const valorA = ordemPosicoes[posA] || 99;
-      const valorB = ordemPosicoes[posB] || 99;
-
-      // Se as posições forem diferentes, ordena pela posição
-      if (valorA !== valorB) {
-        return valorA - valorB;
-      }
-
-      // Se for a mesma posição, ordena pelo OVR (Overall) do maior para o menor
-      return b.overall - a.overall;
-    });
-  }, [data?.squad]);
-
+  const squad = useMemo(
+    () =>
+      [...(data?.squad || [])].sort(
+        (a, b) => rank(a.position) - rank(b.position) || b.overall - a.overall
+      ),
+    [data?.squad]
+  );
 
   return (
-    <div className="bg-[#0d1a0d] rounded-xl border border-[#11d411]/20 overflow-hidden">
-      {/* ... Cabeçalho da Tabela (Mantenha igual) ... */}
-      <div className="grid grid-cols-12 gap-4 p-4 border-b border-[#11d411]/20 bg-[#11d411]/10 text-xs font-bold uppercase text-[#11d411] tracking-wider">
-        <div className="col-span-4">Jogador</div>
-        <div className="col-span-2 text-center">Posição</div>
-        <div className="col-span-1 text-center">OVR</div>
-        <div className="col-span-1 text-center">Idade</div>
-        <div className="col-span-1 text-center">Jogos</div>
-        <div className="col-span-1 text-center">Gols</div>
-        <div className="col-span-1 text-center">Assists</div>
-        <div className="col-span-1 text-center">Ações</div>
-      </div>
-
-      <div className="divide-y divide-[#11d411]/10">
-        {/* 3. Use a lista 'elencoOrdenado' aqui ao invés de 'data.squad' */}
-        {elencoOrdenado.map((player) => (
-          <div 
-            key={player.id} 
-            className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-white/5 transition-colors group"
-          >
-            {/* Nome e Avatar */}
-            <div className="col-span-4 flex items-center gap-3">
-               <div className="w-8 h-8 rounded-full bg-[#11d411]/20 flex items-center justify-center text-[#11d411]">
-                 <User className="w-4 h-4" />
-               </div>
-               <span className="font-bold text-white uppercase">{player.name}</span>
-            </div>
-
-            {/* Posição (Com badge estilizada) */}
-            <div className="col-span-2 flex justify-center">
-              <span className="px-2 py-1 rounded bg-white/10 text-white font-bold text-xs w-12 text-center">
-                {player.position}
-              </span>
-            </div>
-
-            {/* OVR (Colorido dependendo do nível) */}
-            <div className="col-span-1 text-center">
-              <span className={`font-black text-lg ${
-                player.overall >= 80 ? 'text-[#11d411]' : 
-                player.overall >= 70 ? 'text-yellow-400' : 'text-white/60'
-              }`}>
-                {player.overall}
-              </span>
-            </div>
-
-            <div className="col-span-1 text-center text-white/80 font-mono">{player.idade}</div>
-            <div className="col-span-1 text-center text-white/60 font-mono italic">{player.jogos_disputados}</div>
-            <div className="col-span-1 text-center text-[#11d411] font-bold font-mono">{player.gols}</div>
-            <div className="col-span-1 text-center text-[#11d411] font-bold font-mono">{player.assistencias}</div>
-
-            {/* Botões de Ação */}
-            <div className="col-span-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
-                onClick={() => onEditPlayer(player)}
-                className="p-1.5 hover:bg-yellow-500/20 text-yellow-500 rounded transition-colors"
-                title="Editar Jogador"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => onRemovePlayer(player.id)}
-                className="p-1.5 hover:bg-red-500/20 text-red-500 rounded transition-colors"
-                title="Demitir Jogador"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-        
-        {/* Mensagem se lista vazia */}
-        {elencoOrdenado.length === 0 && (
-            <div className="p-8 text-center text-white/30 text-sm uppercase font-bold tracking-widest">
-                Nenhum jogador no elenco
-            </div>
-        )}
-      </div>
-      
-      {/* Botão de adicionar no rodapé */}
-      <div className="p-4 border-t border-[#11d411]/20 bg-[#11d411]/5">
-        <button
-            onClick={onAddPlayer}
-            className="w-full py-3 border-2 border-dashed border-[#11d411]/30 hover:border-[#11d411] text-[#11d411] rounded-lg font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 hover:bg-[#11d411]/10"
-        >
-            + Contratar Jogador
+    <Panel
+      title={`Elenco · ${squad.length}`}
+      action={
+        <button type="button" onClick={onAddPlayer} className={actionBtn}>
+          <Icon name="person_add" className="text-lg" />
+          Adicionar jogador
         </button>
-      </div>
-    </div>
+      }
+    >
+      {squad.length === 0 ? (
+        <Empty>Nenhum jogador nesta temporada. Adicione o primeiro para começar o elenco.</Empty>
+      ) : (
+        <div className="-mx-5 -my-5 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left">
+            <thead>
+              <tr className="border-b border-pitch-700/70 text-[11px] uppercase tracking-wider text-muted">
+                <th className="px-5 py-3 font-medium">Jogador</th>
+                <th className="px-2 py-3 text-center font-medium">Pos</th>
+                <th className="px-2 py-3 text-center font-medium">OVR</th>
+                <th className="px-2 py-3 text-center font-medium">Idade</th>
+                <th className="px-2 py-3 text-center font-medium">Jogos</th>
+                <th className="px-2 py-3 text-center font-medium">Gols</th>
+                <th className="px-2 py-3 text-center font-medium">Assist.</th>
+                <th className="px-5 py-3"><span className="sr-only">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-pitch-700/50">
+              {squad.map((p) => (
+                <tr key={p.id} className="group transition hover:bg-pitch-800/50">
+                  <td className="px-5 py-3 font-medium">{p.name}</td>
+                  <td className="px-2 py-3 text-center">
+                    <span className="inline-block w-12 rounded bg-pitch-800 py-0.5 text-xs font-semibold text-muted">
+                      {p.position}
+                    </span>
+                  </td>
+                  <td className={`px-2 py-3 text-center font-kit text-2xl font-bold ${ovrColor(p.overall)}`}>{p.overall}</td>
+                  <td className="px-2 py-3 text-center text-muted">{p.idade}</td>
+                  <td className="px-2 py-3 text-center text-muted">{p.jogos_disputados}</td>
+                  <td className="px-2 py-3 text-center font-kit text-xl font-bold">{p.gols}</td>
+                  <td className="px-2 py-3 text-center font-kit text-xl font-bold">{p.assistencias}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      <button
+                        onClick={() => onEditPlayer(p)}
+                        aria-label={`Editar estatísticas de ${p.name}`}
+                        title="Editar estatísticas"
+                        className="grid h-8 w-8 place-items-center rounded-lg text-muted transition hover:bg-pitch-700 hover:text-chalk"
+                      >
+                        <Icon name="edit" className="text-lg" />
+                      </button>
+                      <button
+                        onClick={() => onRemovePlayer(p.id)}
+                        aria-label={`Remover ${p.name} do elenco`}
+                        title="Remover do elenco"
+                        className="grid h-8 w-8 place-items-center rounded-lg text-muted transition hover:bg-red-500/15 hover:text-red-300"
+                      >
+                        <Icon name="person_remove" className="text-lg" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 }

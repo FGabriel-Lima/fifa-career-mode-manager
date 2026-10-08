@@ -1,171 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Target, TrendingUp, ArrowLeft, Trophy, Activity } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { kitFor } from '../components/Crest';
+import { BOARDS, rankBy } from '../components/career/HallOfFame';
+import { Icon } from '../components/career/ui';
+
+const surname = (name = '') => name.trim().split(/\s+/).pop().toUpperCase().slice(0, 12);
+
+// Camisa "aposentada": o recorde do líder vira o número nas costas, nas cores do clube.
+function Jersey({ player, value, colors: [primary, secondary] }) {
+  return (
+    <svg viewBox="0 0 120 116" className="h-40 w-40" role="img" aria-label={`${player.nome_completo}: ${value}`}>
+      <path
+        d="M40 6 L20 12 L4 34 L19 47 L28 40 V110 H92 V40 L101 47 L116 34 L100 12 L80 6 C76 13 69 17 60 17 C51 17 44 13 40 6 Z"
+        fill={primary}
+        stroke={secondary}
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <g fontFamily="'Barlow Condensed', sans-serif" fontWeight="700" fill={secondary} textAnchor="middle">
+        <text x="60" y="40" fontSize="11" letterSpacing="1.5">{surname(player.nome_completo)}</text>
+        <text x="60" y="94" fontSize="48">{value}</text>
+      </g>
+    </svg>
+  );
+}
+
+function Board({ ranking, field, title, unit, colors }) {
+  const [leader, ...rest] = rankBy(ranking, field, 15);
+
+  return (
+    <section className="rounded-xl border border-pitch-700/70 bg-pitch-900">
+      <h2 className="border-b border-pitch-700/70 px-5 py-4 font-kit text-2xl font-bold uppercase tracking-wide">
+        {title}
+      </h2>
+
+      {!leader ? (
+        <p className="px-5 py-10 text-center text-sm text-muted">Ninguém pontuou aqui ainda.</p>
+      ) : (
+        <>
+          <figure className="flex flex-col items-center px-5 pb-6 pt-8 text-center">
+            <Jersey player={leader} value={leader[field]} colors={colors} />
+            <figcaption className="mt-4">
+              <p className="text-lg font-semibold">{leader.nome_completo}</p>
+              <p className="text-sm text-muted">
+                {leader[field]} {unit}
+                {field !== 'total_jogos' && ` em ${leader.total_jogos} jogos`}
+              </p>
+            </figcaption>
+          </figure>
+
+          {rest.length > 0 && (
+            <ol className="divide-y divide-pitch-700/50 border-t border-pitch-700/70">
+              {rest.map((p, idx) => (
+                <li key={p.id} className="flex items-center gap-4 px-5 py-3">
+                  <span className="w-6 text-right font-kit text-xl font-bold text-muted">{idx + 2}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{p.nome_completo}</span>
+                    <span className="text-xs uppercase tracking-wider text-muted">{p.posicao}</span>
+                  </span>
+                  <span className="font-kit text-2xl font-bold text-neon">{p[field]}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 export default function HallOfFamePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [jogadores, setJogadores] = useState([]);
+  const [clube, setClube] = useState('');
   const [loading, setLoading] = useState(true);
+  const hasToken = Boolean(localStorage.getItem('token'));
 
   useEffect(() => {
-    const fetchFullHall = async () => {
-      try {
-        const res = await api.get(`/carreiras/${id}/hall-of-fame?limit=100`);
-        setJogadores(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFullHall();
-  }, [id]);
+    if (!hasToken) return;
+    Promise.all([api.get(`/carreiras/${id}/hall-of-fame?limit=100`), api.get(`/carreiras/${id}`)])
+      .then(([ranking, carreira]) => {
+        setJogadores(ranking.data);
+        setClube(carreira.data.temporadas?.[0]?.clube_nome || '');
+      })
+      .catch((err) => {
+        if (err.response?.status === 401) navigate('/');
+      })
+      .finally(() => setLoading(false));
+  }, [id, hasToken, navigate]);
 
-  // Lógica de Ordenação
-  const artilheiros = [...jogadores].sort((a, b) => b.total_gols - a.total_gols).slice(0, 15);
-  const garcons = [...jogadores].sort((a, b) => b.total_assistencias - a.total_assistencias).slice(0, 15);
-  const veteranos = [...jogadores].sort((a, b) => b.total_jogos - a.total_jogos).slice(0, 15);
+  if (!hasToken) return <Navigate to="/" replace />;
 
-  if (loading) return <div className="p-10 text-white font-black italic">Carregando Galeria Histórica...</div>;
+  const colors = kitFor(clube);
 
   return (
-    <div className="min-h-screen bg-[#050a05] text-white p-4 md:p-12">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Header de Navegação */}
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white/30 hover:text-[#11d411] transition-all mb-10 font-black uppercase text-[10px] tracking-widest"
+    <div className="min-h-screen bg-pitch-950 font-display text-chalk">
+      <Navbar />
+
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-14">
+        <button
+          onClick={() => navigate(`/career/${id}`)}
+          className="flex items-center gap-1 text-sm font-semibold text-muted transition hover:text-neon"
         >
-          <ArrowLeft className="w-4 h-4" /> Voltar ao Dashboard
+          <Icon name="arrow_back" className="text-lg" />
+          Voltar para a carreira
         </button>
 
-        <header className="mb-16">
-          <h1 className="text-6xl font-black uppercase italic tracking-tighter leading-none mb-4">Galeria de Lendas</h1>
-          <div className="h-1 w-24 bg-[#11d411]" />
-        </header>
+        <p className="mt-8 text-sm font-semibold uppercase tracking-widest text-neon">Galeria de lendas</p>
+        <h1 className="mt-1 font-kit text-5xl font-bold uppercase leading-none tracking-tight sm:text-6xl">
+          {clube ? `Lendas do ${clube}` : 'Lendas do clube'}
+        </h1>
+        <p className="mt-3 max-w-xl text-muted">Números somados de todas as temporadas da carreira.</p>
 
-        {/* GRID DE TABELAS */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* TABELA 1: ARTILHEIROS (VERDE) */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 px-2">
-              <div className="p-2 bg-[#11d411]/20 rounded-lg">
-                <Target className="text-[#11d411] w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tight">Maiores Artilheiros</h2>
-            </div>
-
-            <div className="bg-[#0d1a0d] border border-[#11d411]/20 rounded-3xl overflow-hidden shadow-2xl shadow-[#11d411]/5">
-              <table className="w-full">
-                <thead className="bg-[#11d411]/10 border-b border-[#11d411]/20">
-                  <tr>
-                    <th className="p-5 text-[#11d411] uppercase text-[10px] font-black tracking-widest text-center w-16">#</th>
-                    <th className="p-5 text-[#11d411] uppercase text-[10px] font-black tracking-widest text-left">Atleta</th>
-                    <th className="p-5 text-[#11d411] uppercase text-[10px] font-black tracking-widest text-center">Jogos</th>
-                    <th className="p-5 text-[#11d411] uppercase text-[10px] font-black tracking-widest text-center">Gols</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {artilheiros.map((p, idx) => (
-                    <tr key={p.id} className="border-b border-white/5 hover:bg-[#11d411]/5 transition-colors group">
-                      <td className="p-5 text-center font-black text-white/10 group-hover:text-[#11d411] italic text-xl">
-                        {idx + 1}
-                      </td>
-                      <td className="p-5">
-                        <p className="font-black uppercase text-base">{p.nome_completo}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{p.posicao}</p>
-                      </td>
-                      <td className="p-5 text-center font-bold text-white/40">{p.total_jogos}</td>
-                      <td className="p-5 text-center font-black text-[#11d411] text-2xl italic tracking-tighter">{p.total_gols}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* TABELA 2: GARÇONS (AZUL) */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 px-2">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <TrendingUp className="text-blue-400 w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-black uppercase italic tracking-tight text-blue-100">Líderes de Assistências</h2>
-            </div>
-
-            <div className="bg-[#0d1a0d] border border-blue-500/20 rounded-3xl overflow-hidden shadow-2xl shadow-blue-500/5">
-              <table className="w-full">
-                <thead className="bg-blue-500/10 border-b border-blue-500/20">
-                  <tr>
-                    <th className="p-5 text-blue-400 uppercase text-[10px] font-black tracking-widest text-center w-16">#</th>
-                    <th className="p-5 text-blue-400 uppercase text-[10px] font-black tracking-widest text-left">Atleta</th>
-                    <th className="p-5 text-blue-400 uppercase text-[10px] font-black tracking-widest text-center">Jogos</th>
-                    <th className="p-5 text-blue-400 uppercase text-[10px] font-black tracking-widest text-center">Assists</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {garcons.map((p, idx) => (
-                    <tr key={p.id} className="border-b border-white/5 hover:bg-blue-500/5 transition-colors group">
-                      <td className="p-5 text-center font-black text-white/10 group-hover:text-blue-400 italic text-xl">
-                        {idx + 1}
-                      </td>
-                      <td className="p-5">
-                        <p className="font-black uppercase text-base">{p.nome_completo}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{p.posicao}</p>
-                      </td>
-                      <td className="p-5 text-center font-bold text-white/40">{p.total_jogos}</td>
-                      <td className="p-5 text-center font-black text-blue-400 text-2xl italic tracking-tighter">{p.total_assistencias}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-
-          <section className="space-y-6">
-    <div className="flex items-center gap-3 px-2">
-      <div className="p-2 bg-purple-500/20 rounded-lg">
-        <Activity className="text-purple-400 w-6 h-6" />
-      </div>
-      <h2 className="text-2xl font-black uppercase italic tracking-tight text-purple-100">Presença em Campo</h2>
-    </div>
-
-    <div className="bg-[#0d1a0d] border border-purple-500/20 rounded-3xl overflow-hidden shadow-2xl shadow-purple-500/5">
-      <table className="w-full">
-        <thead className="bg-purple-500/10 border-b border-purple-500/20">
-          <tr>
-            <th className="p-5 text-purple-400 uppercase text-[10px] font-black tracking-widest text-center w-16">#</th>
-            <th className="p-5 text-purple-400 uppercase text-[10px] font-black tracking-widest text-left">Atleta</th>
-            <th className="p-5 text-purple-400 uppercase text-[10px] font-black tracking-widest text-center">Total Partidas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {veteranos.map((p, idx) => (
-            <tr key={p.id} className="border-b border-white/5 hover:bg-purple-500/5 transition-colors group">
-              <td className="p-5 text-center font-black text-white/10 group-hover:text-purple-400 italic text-xl">
-                {idx + 1}
-              </td>
-              <td className="p-5">
-                <p className="font-black uppercase text-base">{p.nome_completo}</p>
-                <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{p.posicao}</p>
-              </td>
-              <td className="p-5 text-center font-black text-purple-400 text-2xl italic tracking-tighter">
-                {p.total_jogos}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-        </div>
-      </div>
+        {loading ? (
+          <p className="mt-10 text-muted">Carregando a galeria…</p>
+        ) : (
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {BOARDS.map((board) => (
+              <Board key={board.field} ranking={jogadores} colors={colors} {...board} />
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

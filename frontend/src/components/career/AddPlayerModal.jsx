@@ -1,85 +1,50 @@
-// frontend/src/components/career/AddPlayerModal.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { Field, FormError } from '../AuthLayout';
+import { POSITIONS } from './SquadTab';
+import { Modal, ModalActions, selectClass, useSubmit } from './ui';
+
+const initial = { nome_completo: '', posicao: 'ATA', overall: 70, idade: 20 };
 
 export default function AddPlayerModal({ isOpen, onClose, careerId, seasonId, onSuccess }) {
-  const [formData, setFormData] = useState({
-    nome_completo: '',
-    posicao: '',
-    overall: 70,
-    idade: 20,
-    gols: 0,
-    assistencias: 0
-  });
+  const [form, setForm] = useState(initial);
+  const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      // Endpoint que vamos criar no backend para salvar tudo de uma vez
-      const res = await api.post(`/carreiras/${careerId}/temporadas/${seasonId}/jogadores`, formData);
-      onSuccess(res.data);
-      onClose();
-    } catch (err) {
-      console.error("Erro ao salvar jogador", err);
-    }
-  };
+  const { busy, error, setError, submit } = useSubmit(async () => {
+    await api.post(`/carreiras/${careerId}/temporadas/${seasonId}/jogadores`, {
+      ...form,
+      overall: Number(form.overall),
+      idade: Number(form.idade),
+    });
+    onSuccess();
+    onClose();
+  }, 'Não foi possível adicionar o jogador. Tente de novo.');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm(initial);
+    setError('');
+  }, [isOpen, setError]);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1a0d] border border-[#11d411]/30 p-8 rounded-2xl w-full max-w-md shadow-2xl shadow-[#11d411]/10">
-        <h2 className="text-[#11d411] text-2xl font-black mb-6 uppercase tracking-tighter">Novo Jogador</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-white/60 text-xs font-bold uppercase mb-1 block">Nome Completo</label>
-            <input 
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#11d411] outline-none transition-all"
-              value={formData.nome_completo}
-              onChange={e => setFormData({...formData, nome_completo: e.target.value})}
-              required
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-white/60 text-xs font-bold uppercase mb-1 block">Posição (ex: ST, GK)</label>
-              <input 
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#11d411] outline-none"
-                value={formData.posicao}
-                onChange={e => setFormData({...formData, posicao: e.target.value})}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-white/60 text-xs font-bold uppercase mb-1 block">Overall (OVR)</label>
-              <input 
-                type="number"
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-[#11d411] outline-none"
-                value={formData.overall}
-                onChange={e => setFormData({...formData, overall: parseInt(e.target.value)})}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-8">
-            <button 
-              type="button" 
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl font-bold text-white/50 hover:bg-white/5 transition-all"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit"
-              className="flex-1 bg-[#11d411] text-[#102210] px-6 py-3 rounded-xl font-black hover:shadow-lg hover:shadow-[#11d411]/30 transition-all"
-            >
-              SALVAR
-            </button>
-          </div>
-        </form>
+    <Modal isOpen={isOpen} onClose={onClose} onSubmit={submit} title="Adicionar jogador" subtitle="Entra no elenco desta temporada.">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Field id="jogador-nome" name="nome_completo" label="Nome" value={form.nome_completo} onChange={set} required autoFocus />
+        </div>
+        <label className="flex flex-col gap-2" htmlFor="jogador-posicao">
+          <span className="text-sm font-medium text-muted">Posição</span>
+          <select id="jogador-posicao" name="posicao" value={form.posicao} onChange={set} className={selectClass}>
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+        <Field id="jogador-ovr" name="overall" label="Overall" type="number" min="1" max="99" value={form.overall} onChange={set} />
+        <Field id="jogador-idade" name="idade" label="Idade" type="number" min="14" max="50" value={form.idade} onChange={set} />
       </div>
-    </div>
+      <div className="mt-5"><FormError>{error}</FormError></div>
+      <ModalActions submitLabel="Adicionar jogador" busy={busy} onCancel={onClose} />
+    </Modal>
   );
 }

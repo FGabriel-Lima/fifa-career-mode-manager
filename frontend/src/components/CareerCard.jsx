@@ -1,18 +1,11 @@
 import React from 'react';
 import Crest, { kitFor } from './Crest';
-
-const brl = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
+import { money } from '../format';
 
 function CareerCard({ carreira, onOpen }) {
   const temporada = carreira.temporadas?.[0];
   const clube = temporada?.clube_nome || 'Sem clube';
   const [primary, secondary] = kitFor(clube);
-  const orcamento = Number(temporada?.orcamento_transferencia || 0);
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-pitch-700/70 bg-pitch-900 transition hover:-translate-y-1 hover:border-neon/50 hover:shadow-[0_18px_40px_-18px_rgba(17,212,17,0.35)]">
@@ -40,7 +33,7 @@ function CareerCard({ carreira, onOpen }) {
           </div>
           <div>
             <dt className="text-[11px] uppercase tracking-wider text-muted">Orçamento</dt>
-            <dd className="font-kit text-xl font-bold text-gold">{brl.format(orcamento)}</dd>
+            <dd className="font-kit text-xl font-bold text-gold">{money(temporada?.orcamento_transferencia)}</dd>
           </div>
         </dl>
 
