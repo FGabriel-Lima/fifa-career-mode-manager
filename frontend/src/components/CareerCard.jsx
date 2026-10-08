@@ -1,49 +1,58 @@
 import React from 'react';
+import Crest, { kitFor } from './Crest';
+
+const brl = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 
 function CareerCard({ carreira, onOpen }) {
-  
-  const temporadaAtual = carreira.temporadas && carreira.temporadas[0];
+  const temporada = carreira.temporadas?.[0];
+  const clube = temporada?.clube_nome || 'Sem clube';
+  const [primary, secondary] = kitFor(clube);
+  const orcamento = Number(temporada?.orcamento_transferencia || 0);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg bg-[#1A2B1A] p-3 transition-all hover:ring-2 hover:ring-[#11d411]/50 hover:scale-[1.02] shadow-lg border border-white/5">
-      
-      {/* Imagem do Card */}
-      <div className="w-full bg-center bg-no-repeat aspect-[16/10] bg-cover rounded-md bg-gray-800 relative overflow-hidden group">
-          {/* Gradiente na imagem */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#102210] via-transparent to-transparent opacity-80"></div>
-          
-          {/* Ícone de Estádio */}
-          <span className="material-symbols-outlined absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/20 group-hover:text-[#11d411]/40 transition-colors duration-300" style={{fontSize: '48px'}}>
-            stadium
-          </span>
-          
-          {/* Nome do clube sobre a imagem */}
-          <div className="absolute bottom-2 left-3 right-3">
-             <p className="text-white font-bold text-lg truncate drop-shadow-md tracking-tight">
-               {temporadaAtual?.clube_nome || "Sem Clube"}
-             </p>
-          </div>
-      </div>
-      
-      {/* Informações de Texto */}
-      <div className="flex flex-col gap-1 px-1 py-1">
-        <p className="text-[#11d411] text-base font-bold leading-normal truncate">
-          {carreira.nome_carreira}
-        </p>
-        <div className="flex items-center gap-1 text-white/60 text-xs font-medium">
-            <span className="material-symbols-outlined" style={{fontSize: '14px'}}>calendar_month</span>
-            <span>Temporada: {temporadaAtual?.nome}</span>
-        </div>
-      </div>
-      
-      {/* Botão de Ação */}
-      <button 
-        onClick={() => onOpen(carreira.id)}
-        className="w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#11d411] text-[#102210] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#11d411]/90 transition-colors mt-auto shadow-md shadow-[#11d411]/10"
+    <article className="group flex flex-col overflow-hidden rounded-xl border border-pitch-700/70 bg-pitch-900 transition hover:-translate-y-1 hover:border-neon/50 hover:shadow-[0_18px_40px_-18px_rgba(17,212,17,0.35)]">
+      {/* Listras de camisa nas cores do clube */}
+      <div
+        className="relative h-24"
+        style={{
+          background: `repeating-linear-gradient(90deg, ${primary} 0 22px, ${secondary} 22px 30px)`,
+        }}
       >
-        <span className="truncate">Carregar Save</span>
-      </button>
-    </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-pitch-900" />
+        <Crest name={clube} className="absolute -bottom-7 left-5 h-16 w-14 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]" />
+      </div>
+
+      <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-10">
+        <div>
+          <p className="font-kit text-2xl font-bold uppercase leading-none tracking-wide text-chalk">{clube}</p>
+          <p className="mt-1.5 truncate text-sm text-muted">{carreira.nome_carreira}</p>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-3 rounded-lg bg-pitch-950/60 p-3">
+          <div>
+            <dt className="text-[11px] uppercase tracking-wider text-muted">Temporada</dt>
+            <dd className="font-kit text-xl font-bold text-chalk">{temporada?.nome || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] uppercase tracking-wider text-muted">Orçamento</dt>
+            <dd className="font-kit text-xl font-bold text-gold">{brl.format(orcamento)}</dd>
+          </div>
+        </dl>
+
+        <button
+          onClick={() => onOpen(carreira.id)}
+          className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg border border-neon/40 text-sm font-bold text-neon transition hover:bg-neon hover:text-pitch-950"
+        >
+          Carregar save
+          <span className="material-symbols-outlined text-lg">arrow_forward</span>
+        </button>
+      </div>
+    </article>
   );
 }
 

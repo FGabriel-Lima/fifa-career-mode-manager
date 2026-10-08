@@ -1,109 +1,131 @@
-import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import React, { useEffect, useState } from 'react';
+import api, { apiError } from '../services/api';
+import { btnPrimary, FormError, inputClass } from './AuthLayout';
+import Crest from './Crest';
 
-  const initialData = {
-    nome_carreira: '',
-    clube_nome: '',
-    nome_temporada: '',
-    orcamento_transferencia: ''
-  };
+const initialData = {
+  nome_carreira: '',
+  clube_nome: '',
+  nome_temporada: '',
+  orcamento_transferencia: '',
+};
 
 function NewCareerModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState(initialData);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
 
+  // Limpa o formulário só quando o modal abre.
   useEffect(() => {
-    if (isOpen) {
-      setFormData(initialData);
-    }
+    if (!isOpen) return;
+    setFormData(initialData);
+    setError('');
   }, [isOpen]);
 
-  // Se não estiver aberto, não renderiza nada
+  // Esc fecha o modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // Função para fechar e limpar (usada no Cancelar e no X)
-  const handleClose = () => {
-    setFormData(initialData); 
-    onClose(); 
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.nome_carreira || !formData.clube_nome || !formData.nome_temporada) {
-      alert("Preencha todos os campos obrigatórios!");
-      return;
-    }
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setCreating(true);
+    setError('');
     try {
       const response = await api.post('/carreiras', {
         ...formData,
-        orcamento_transferencia: parseFloat(formData.orcamento_transferencia || 0)
+        orcamento_transferencia: parseFloat(formData.orcamento_transferencia || 0),
       });
-      
       onSuccess(response.data);
-      setFormData(initialData); // Limpa também no sucesso
-      
-    } catch (error) {
-      alert("Erro ao criar carreira. Tente novamente.");
+    } catch (err) {
+      setError(apiError(err, 'Não foi possível criar a carreira. Tente de novo.'));
     } finally {
       setCreating(false);
     }
   };
 
+  const field = (name, label, placeholder, extra = {}) => (
+    <label className="flex flex-col gap-2">
+      <span className="text-sm font-medium text-muted">{label}</span>
+      <input
+        name={name}
+        value={formData[name]}
+        onChange={handleInputChange}
+        placeholder={placeholder}
+        className={inputClass}
+        {...extra}
+      />
+    </label>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex h-screen w-full items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="flex w-full max-w-xl flex-col rounded-xl border border-[#11d411]/20 bg-[#102210] shadow-2xl shadow-[#11d411]/10 animate-in fade-in zoom-in duration-200">
-        <div className="flex flex-col gap-6 p-6 sm:p-8">
-          
-          <div className="flex justify-between items-center">
-            <p className="text-white tracking-light text-2xl sm:text-[32px] font-bold leading-tight">
-              Iniciar Nova Jornada
-            </p>
-            <button onClick={handleClose} className="text-white/50 hover:text-white transition-colors">
-              <span className="material-symbols-outlined">close</span>
-            </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nova-carreira-titulo"
+        onSubmit={handleSubmit}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl rounded-2xl border border-pitch-700 bg-pitch-900 p-6 font-display text-chalk shadow-2xl sm:p-8"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Crest name={formData.clube_nome || '?'} className="h-14 w-12 shrink-0" />
+            <div>
+              <h2 id="nova-carreira-titulo" className="font-kit text-3xl font-bold uppercase leading-none">
+                Nova carreira
+              </h2>
+              <p className="mt-1 text-sm text-muted">O escudo muda conforme o nome do clube.</p>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <label className="flex flex-col min-w-40 flex-1">
-              <p className="text-white/80 text-base font-medium leading-normal pb-2">Nome do Save</p>
-              <input name="nome_carreira" value={formData.nome_carreira} onChange={handleInputChange} className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#11d411]/80 border border-[#11d411]/30 bg-[#1A331A] focus:border-[#11d411] h-14 placeholder:text-[#11d411]/40 p-[15px] text-base font-normal leading-normal transition-all duration-200" placeholder="Rumo ao Estrelato" />
-            </label>
-            
-            <label className="flex flex-col min-w-40 flex-1">
-              <p className="text-white/80 text-base font-medium leading-normal pb-2">Nome do Clube</p>
-              <input name="clube_nome" value={formData.clube_nome} onChange={handleInputChange} className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#11d411]/80 border border-[#11d411]/30 bg-[#1A331A] focus:border-[#11d411] h-14 placeholder:text-[#11d411]/40 p-[15px] text-base font-normal leading-normal transition-all duration-200" placeholder="Santos FC" />
-            </label>
-            
-            <label className="flex flex-col min-w-40 flex-1">
-              <p className="text-white/80 text-base font-medium leading-normal pb-2">Temporada Inicial</p>
-              <input name="nome_temporada" value={formData.nome_temporada} onChange={handleInputChange} className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#11d411]/80 border border-[#11d411]/30 bg-[#1A331A] focus:border-[#11d411] h-14 placeholder:text-[#11d411]/40 p-[15px] text-base font-normal leading-normal transition-all duration-200" placeholder="2024/2025" />
-            </label>
-            
-            <label className="flex flex-col min-w-40 flex-1">
-              <p className="text-white/80 text-base font-medium leading-normal pb-2">Orçamento Inicial</p>
-              <div className="relative flex w-full items-center">
-                <span className="pointer-events-none absolute left-4 text-[#11d411]/40">R$</span>
-                <input name="orcamento_transferencia" type="number" value={formData.orcamento_transferencia} onChange={handleInputChange} className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-2 focus:ring-[#11d411]/80 border border-[#11d411]/30 bg-[#1A331A] focus:border-[#11d411] h-14 placeholder:text-[#11d411]/40 pl-10 pr-4 text-base font-normal leading-normal transition-all duration-200" placeholder="50.000.000" />
-              </div>
-            </label>
-          </div>
-
-          <div className="mt-4 flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-end">
-            <button onClick={handleClose} className="flex h-12 w-full items-center justify-center rounded-lg px-6 text-base font-bold text-white/80 transition-colors hover:bg-white/10 sm:w-auto">
-              Cancelar
-            </button>
-            <button onClick={handleSubmit} disabled={creating} className="flex h-12 w-full items-center justify-center rounded-lg bg-[#11d411] px-6 text-base font-bold text-[#102210] transition-transform hover:scale-105 sm:w-auto disabled:opacity-50">
-              {creating ? 'Criando...' : 'Criar Carreira'}
-            </button>
-          </div>
-
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-9 w-9 place-items-center rounded-lg text-muted transition hover:bg-pitch-800 hover:text-chalk"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
-      </div>
+
+        <div className="mt-7 grid gap-5 sm:grid-cols-2">
+          {field('nome_carreira', 'Nome do save', 'Rumo ao estrelato', { required: true, autoFocus: true })}
+          {field('clube_nome', 'Clube', 'Santos FC', { required: true })}
+          {field('nome_temporada', 'Temporada inicial', '2025/26', { required: true })}
+          {field('orcamento_transferencia', 'Orçamento de transferências (R$)', '50000000', {
+            type: 'number',
+            min: 0,
+            inputMode: 'numeric',
+          })}
+        </div>
+
+        <div className="mt-5">
+          <FormError>{error}</FormError>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-12 rounded-lg px-6 font-semibold text-muted transition hover:bg-pitch-800 hover:text-chalk"
+          >
+            Cancelar
+          </button>
+          <button type="submit" disabled={creating} className={`${btnPrimary} sm:w-auto`}>
+            {creating ? 'Criando…' : 'Criar carreira'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
