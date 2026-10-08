@@ -2,9 +2,9 @@ const prisma = require('../prismaClient');
 
 const criarTransferencia = async (req, res) => {
   try {
+    const {temporada_id} = req.params;
     const {
-      temporada_id,
-      tipo_transferencia,
+      tipo_transferencia, // 'compra' ou 'venda'
       valor_transferencia,
       jogador_id,
       nome_jogador_externo,
@@ -14,44 +14,63 @@ const criarTransferencia = async (req, res) => {
 
     const usuarioId = req.user.id;
     const tempIdNum = parseInt(temporada_id);
+    const valorNum = parseFloat(valor_transferencia);
 
-    // Validação
+    // 1. Validações básicas
     if (!tempIdNum || isNaN(tempIdNum)) {
       return res.status(400).json({ error: 'temporada_id é obrigatório e deve ser um número.' });
     }
-    if (!tipo_transferencia || valor_transferencia == undefined){
+    if (!tipo_transferencia || isNaN(valorNum)) {
       return res.status(400).json({ error: 'Os campos tipo_transferencia e valor_transferencia são obrigatórios.' });
     }
 
+    // 2. Verifica se a temporada pertence ao usuário e pega o orçamento atual
     const temporada = await prisma.temporadas.findFirst({
       where: {
         id: tempIdNum,
-        carreira: {
-          usuario_id: usuarioId,
-        },
+        carreira: { usuario_id: usuarioId },
       },
     });
 
     if (!temporada) {
-      return res.status(404).json({ error: 'Temporada não encontrada para o usuário logado.' });
+      return res.status(404).json({ error: 'Temporada não encontrada.' });
     }
 
-    const novaTransferencia = await prisma.transferencias.create({
-      data: {
-        temporada_id: tempIdNum,
-        tipo_transferencia,
-        valor_transferencia,
-        jogador_id: jogador_id ? parseInt(jogador_id) : null,
-        nome_jogador_externo,
-        time_origem,
-        time_destino,
-      },
-    });
+    // 3. Lógica de atualização de orçamento
+    // Compra = retira do orçamento | Venda = adiciona ao orçamento
+    let novoOrcamento = Number(temporada.orcamento_transferencia || 0);
+    if (tipo_transferencia.toLowerCase() === 'compra') {
+      novoOrcamento -= valorNum;
+    } else if (tipo_transferencia.toLowerCase() === 'venda') {
+      novoOrcamento += valorNum;
+    }
 
-    res.status(201).json(novaTransferencia);
+    // 4. Executa a criação da transferência e o update do orçamento em uma transação
+    const resultado = await prisma.$transaction([
+      // Cria o registro da transferência
+      prisma.transferencias.create({
+        data: {
+          temporada_id: tempIdNum,
+          tipo_transferencia,
+          valor_transferencia: valorNum,
+          jogador_id: jogador_id ? parseInt(jogador_id) : null,
+          nome_jogador_externo,
+          time_origem,
+          time_destino,
+        },
+      }),
+      // Atualiza o orçamento na tabela de temporadas
+      prisma.temporadas.update({
+        where: { id: tempIdNum },
+        data: { orcamento_transferencia: novoOrcamento }
+      })
+    ]);
 
-  }catch (error) {
-    console.error(error);
+    // Retorna o primeiro item da transação (a nova transferência)
+    res.status(201).json(resultado[0]);
+
+  } catch (error) {
+    console.error("Erro ao processar transferência:", error);
     res.status(500).json({ error: 'Erro ao processar transferência.' });
   }
 };

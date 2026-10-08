@@ -30,7 +30,7 @@ function DashboardPage() {
 
   const abrirCarreira = (id) => {
     console.log("Abrindo carreira:", id);
-    // navigate(`/career/${id}`); 
+    navigate(`/career/${id}`); 
   };
 
   const onCareerCreated = (novaCarreira) => {
